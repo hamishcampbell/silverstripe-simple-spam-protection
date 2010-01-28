@@ -1,0 +1,14 @@
+####################################################
+Simple Spam Protector                          trunk
+####################################################
+
+# Maintainer Contact
+Hamish Campbell (Nickname: hamish) 
+<hn.campbell (at) gmail (dot) com>
+
+# Requirements
+SilverStripe 2.3.0
+SpamProtector module
+
+# Documentation
+http://polemic.net.nz/simple-spam-protector/
