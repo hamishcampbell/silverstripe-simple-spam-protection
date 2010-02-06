@@ -10,7 +10,16 @@
 class SimpleSpamProtectorField extends SpamProtectorField {
 	
 	function __construct($name = null, $title = null, $value = null, $form = null, $rightTitle = null) {
-		$title .= "What is " . rand(1, 10) . " + " . rand(1, 10);
+		if($form) {
+			$data = $form->getData();
+			if(SimpleSpamProtector::PageCommentsExpired($data['ParentID'])) { 
+				$form->unsetAllActions();
+				$form->Fields = new FieldSet();
+				$form->setMessage(_t('SimpleSpamProtector.DISABLED',"Comments for this page have been disabled"), 'warning');
+				$form->makeReadonly();
+			}
+		}		
+		$title .= _t('SimpleSpamProtector.WHATIS',"What is") . " " . rand(1, 10) . " + " . rand(1, 10);
 		parent::__construct($name, $title, $value, $form, $rightTitle);
 	}
 	
@@ -49,7 +58,7 @@ class SimpleSpamProtectorField extends SpamProtectorField {
 	}
 	
 	function FieldHolder() {
-		Requirements::customCSS("\n.simplespamprotector {	display: none; }\n");
+		Requirements::customCSS("\n.simplespamprotector { display: none; }\n");
 		return parent::FieldHolder();
 	}
 	
@@ -57,21 +66,32 @@ class SimpleSpamProtectorField extends SpamProtectorField {
 	 * Checks the field values for potential spam
 	 * Fail validation if the captcha field is filled out or the timestamp (time in minutes from the
 	 * first page load is greater than SimpleSpamProtector::$timeout
-	 * Note that the validation messages are not really important - a human reader shouldn't see them.
 	 * @return 	boolean
 	 */
 	function validate($validator) {
 		if(Permission::check('ADMIN'))
 			return true;
 
+		if(isset($_REQUEST['ParentID']) && SimpleSpamProtector::PageCommentsExpired($_REQUEST['ParentID'])) {
+			$validator->validationError(
+				$this->name, 
+				_t(
+					'SimpleSpamProtector.DISABLED', 
+					"Comments for this page have been disabled"
+				), 
+				"validation", 
+				false
+			);
+			return false;	
+		}
+			
 		$timestamp_field = $this->name()."_timestamp";
 		if(!isset($_REQUEST[$timestamp_field]) || !is_numeric($_REQUEST[$timestamp_field]) || ((time() - (int)$_REQUEST[$timestamp_field]) > (60 * SimpleSpamProtector::$timeout))) {
 			$validator->validationError(
 				$this->name, 
 				_t(
-					'SimpleSpamProtectorField.INCORRECTTIMESTAMP', 
-					"Comment timed out. Please reload the page to submit your comment.",
-					PR_MEDIUM
+					'SimpleSpamProtector.INCORRECTTIMESTAMP', 
+					"This form has timed out. Please refresh your browser and try again."
 				), 
 				"validation", 
 				false
@@ -83,8 +103,8 @@ class SimpleSpamProtectorField extends SpamProtectorField {
 			$validator->validationError(
 				$this->name, 
 				_t(
-					'SimpleSpamProtectorField.INCORRECTCAPTURE', 
-					"You didn't type in the correct captcha text. Please type it in again.",
+					'SimpleSpamProtector.INCORRECTCAPTCHA', 
+					"You didn't type in the correct captcha text. Please try again.",
 					PR_MEDIUM
 				), 
 				"validation", 

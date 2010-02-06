@@ -17,6 +17,31 @@ class SimpleSpamProtector implements SpamProtector {
 	
 	static $timeout = 120;
 	
+	static $page_max_age = 14;
+	
+	public function getFieldName() {
+		return 'SimpleSpamProtectorField';
+	}
+	
+	/**
+	 * Update a form with the Simple Spam Field Protection
+	 */
+	function updateForm($form, $before=null, $fieldsToSpamServiceMapping=null) {
+		if ($before && $form->Fields()->fieldByName($before)) {
+			$form->Fields()->insertBefore($this->getFormField("Captcha", null, null, $form, null), $before);
+		} else {
+			$form->Fields()->push($this->getFormField("Captcha", null, null, $form, null));
+		}
+		return $form->Fields();
+	}
+	
+	/**
+	 * Set which fields need to be mapped for protection
+	 */
+	function setFieldMapping($fieldToPostTitle, $fieldsToPostBody=null, $fieldToAuthorName=null, $fieldToAuthorUrl=null, $fieldToAuthorEmail=null, $fieldToAuthorOpenId=null) {
+		
+	}
+	
 	/**
 	 * Return the Field Associated with this protector
 	 */
@@ -30,6 +55,20 @@ class SimpleSpamProtector implements SpamProtector {
 	 */
 	public function sendFeedback($object = null, $feedback = "") {
 		return true;
+	}
+	
+	/**
+	 * Checks if page comments are still allowed for the page
+	 * 
+	 * @param integer $id Page ID
+	 * @return boolean
+	 */
+	static function PageCommentsExpired($id) {
+		if(!self::$page_max_age) return false;
+		$page = DataObject::get_by_id('SiteTree', $id);
+		if(!$page) return false;
+		$expiry = strtotime("+ " . self::$page_max_age . " days", strtotime($page->LastEdited));
+		return ($expiry <= strtotime('now'));
 	}
 	
 }
